@@ -99,14 +99,27 @@ git push -u origin main
 3. **Framework Preset** 一般为 **Vite**（自动识别）；确认：
    - **Build Command**：`npm run build`（或 `pnpm install && pnpm build`）
    - **Output Directory**：`dist`
-4. **Environment Variables**（在 Vercel 项目 → Settings → Environment Variables）里新增：
-   - **`VITE_API_BASE_URL`** = 你的 Render 后端根地址，例如 `https://competitor-team-api.onrender.com`  
-     （不要带末尾 `/`；Vite 会在**构建时**把该值打进静态文件，改完后需 **Redeploy**。）
-   - 若后端需要鉴权且前端用了 `VITE_API_TOKEN`，可一并配置（与本地 `.env` 一致）。
-5. 点 **Deploy**。部署完成后会得到 `https://xxx.vercel.app`。
-6. **回到 Render 后端**：在环境变量 **`CORS_ORIGINS`** 里加上你的 Vercel 地址（完整 origin，无路径），例如：  
-   `https://xxx.vercel.app`  
-   若已有多个域名，用英文逗号分隔。保存后 **Manual Deploy** 或等待自动重启使 CORS 生效。
-7. 用浏览器打开 Vercel 地址，做一次完整分析流程自测。
+4. 任选一种对接方式（二选一即可）：
 
-**提示：** 本地 `vite.config.ts` 里的 **proxy 只在 `npm run dev` 时有效**；线上不会走代理，必须依赖 **`VITE_API_BASE_URL` 指向 Render**。
+   **方式 A：浏览器直连 Render（常见）**  
+   - 在 Vercel **Environment Variables** 里设置 **`VITE_API_BASE_URL`** = 你的 Render 根地址，例如 `https://competitor-team.onrender.com`（不要末尾 `/`；改后需 **Redeploy**）。  
+   - 在 Render 里配置 **`CORS_ORIGINS`**（你的 `https://xxx.vercel.app`）并已部署后端 CORS 修复；自定义域名也要写进 `CORS_ORIGINS`。
+
+   **方式 B：Vercel 反向代理（绕过浏览器对 Render 的跨域）**  
+   - 编辑 `frontend/vercel.json` 里的 `destination`，改成与你的 Render 服务 **完全一致** 的 `https://xxx.onrender.com/api/:path*`。  
+   - 在 Vercel **删除** `VITE_API_BASE_URL`（或留空），让前端请求**同源** `/api/...`，由 Vercel 转发到 Render。  
+   - **注意：** 分析耗时很长时，Vercel 代理可能有**请求超时**，长任务仍建议用方式 A 并修好 CORS。
+
+5. 若后端需要鉴权且前端用了 `VITE_API_TOKEN`，在 Vercel 一并配置（与本地 `.env` 一致）。
+6. 点 **Deploy**。部署完成后会得到 `https://xxx.vercel.app`。
+7. 若用 **方式 A**，在 Render 的 **`CORS_ORIGINS`** 里加上 Vercel 地址（完整 origin），保存后必要时 **Manual Deploy** 后端。
+8. 用浏览器做一次完整分析自测。
+
+**提示：** 本地 `vite.config.ts` 的 **proxy 仅在 `npm run dev` 生效**；线上要么 **`VITE_API_BASE_URL`**，要么 **`vercel.json` 代理**。
+
+### 若控制台出现 `POST ... onrender.com net::ERR_FAILED`
+
+1. 打开 **开发者工具 → Network**，看是否有一条 **OPTIONS** 失败（多为 CORS）：确认 Render 已部署最新后端，且 **`CORS_ORIGINS` / `CORS_VERCEL_REGEX`** 覆盖你的 Vercel 域名。  
+2. 用浏览器直接打开：`https://你的服务.onrender.com/health` ，确认服务已唤醒。  
+3. 尝试 **方式 B**（`vercel.json` + 去掉 `VITE_API_BASE_URL`）排除跨域问题。  
+4. 关闭广告拦截、换网络/设备试一次。

@@ -57,9 +57,10 @@ app.add_middleware(
   CORSMiddleware,
   allow_origins=_cors_origins(),
   allow_origin_regex=_CORS_VERCEL_REGEX,
-  allow_credentials=True,
+  # 前端 fetch 未带 Cookie；False 时预检与 * 头更不易被浏览器拦（与 allow_credentials=True 组合时部分浏览器对 * 头更严）
+  allow_credentials=False,
   allow_methods=["*"],
-  allow_headers=["*"],
+  allow_headers=["Content-Type", "Authorization", "Accept", "Origin", "X-Requested-With"],
 )
 
 
