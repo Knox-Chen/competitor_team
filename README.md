@@ -63,3 +63,29 @@ git push -u origin main
 ```
 
 **注意：** `.env` 已被 `.gitignore` 忽略，请勿将密钥推送到远程。
+
+---
+
+## 在 Render 上部署后端（推荐顺序：先后端、再前端）
+
+1. **先部署后端**拿到公网 API 地址，再把前端的 `VITE_API_BASE_URL` 指过去（或构建时注入）。
+2. 登录 [Render](https://render.com) → **New +** → **Web Service**，连接本 GitHub 仓库。
+3. 配置示例：
+   - **Root Directory**：`backend`（单仓里的子目录）
+   - **Runtime**：Python 3（版本可由 `backend/runtime.txt` 指定）
+   - **Build Command**：`pip install -r requirements.txt`
+   - **Start Command**：`uvicorn main:app --host 0.0.0.0 --port $PORT`
+4. 在 **Environment** 里添加（与本地 `backend/.env` 一致，值在 Dashboard 里填，勿提交仓库）：
+   - `COZE_REMOTE_ENDPOINT`
+   - `COZE_REMOTE_TOKEN`（若有）
+   - `COZE_PROJECT_ID`
+   - `COZE_SESSION_ID`
+   - `CORS_ORIGINS`：你的**线上前端**完整 origin，例如 `https://xxx.onrender.com` 或 Vercel 域名（多个用英文逗号分隔）
+5. 部署完成后会得到类似 `https://competitor-team-api.onrender.com` 的地址。健康检查：<https://你的服务.onrender.com/health>。
+6. **前端**：把 `frontend/.env.production`（或 CI 环境变量）设为  
+   `VITE_API_BASE_URL=https://你的服务.onrender.com`  
+   然后构建并部署静态站点（Vite `npm run build` 产物可放 Render Static、Vercel、GitHub Pages 等）。
+
+可选：使用仓库根目录的 `render.yaml` 在 Render **Blueprints** 里一键创建服务（首次仍要在 Dashboard 补全密钥类环境变量）。
+
+**说明：** Render 免费实例会休眠，首次请求可能较慢；竞品分析请求若超过平台超时，需在 Render 或代码里评估超时时间。

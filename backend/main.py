@@ -31,13 +31,36 @@ class AnalysisResponse(BaseModel):
 
 app = FastAPI(title="Local Coze Proxy Backend")
 
+
+def _cors_origins() -> List[str]:
+  """本地开发 + 可选生产前端（Render/Vercel 等通过 CORS_ORIGINS 传入，逗号分隔）。"""
+  base = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+  ]
+  extra = os.getenv("CORS_ORIGINS", "").strip()
+  if not extra:
+    return base
+  for part in extra.split(","):
+    o = part.strip()
+    if o and o not in base:
+      base.append(o)
+  return base
+
+
 app.add_middleware(
   CORSMiddleware,
-  allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+  allow_origins=_cors_origins(),
   allow_credentials=True,
   allow_methods=["*"],
   allow_headers=["*"],
 )
+
+
+@app.get("/health")
+def health() -> dict:
+  """供 Render / 负载均衡健康检查使用。"""
+  return {"status": "ok"}
 
 
 @app.on_event("startup")
@@ -299,5 +322,8 @@ async def analyze(request: AnalysisRequest) -> AnalysisResponse:
 if __name__ == "__main__":
   import uvicorn
 
-  uvicorn.run("main:app", host="0.0.0.0", port=5050, reload=True)
+  # Render 等平台注入 PORT；本地默认 5050
+  port = int(os.getenv("PORT", "5050"))
+  reload = os.getenv("RENDER", "").lower() not in ("true", "1", "yes")
+  uvicorn.run("main:app", host="0.0.0.0", port=port, reload=reload)
 

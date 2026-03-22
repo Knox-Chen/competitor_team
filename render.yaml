@@ -1,0 +1,22 @@
+# Render Blueprint：在 Dashboard → Blueprints → New Blueprint Instance 里关联本仓库即可。
+# 也可仅用「手动创建 Web Service」，不必用此文件。
+services:
+  - type: web
+    name: competitor-team-api
+    runtime: python
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: COZE_REMOTE_ENDPOINT
+        sync: false
+      - key: COZE_REMOTE_TOKEN
+        sync: false
+      - key: COZE_PROJECT_ID
+        sync: false
+      - key: COZE_SESSION_ID
+        sync: false
+      # 前端线上地址，逗号分隔多个，例如 https://xxx.vercel.app,https://xxx.onrender.com
+      - key: CORS_ORIGINS
+        sync: false
