@@ -89,3 +89,24 @@ git push -u origin main
 可选：使用仓库根目录的 `render.yaml` 在 Render **Blueprints** 里一键创建服务（首次仍要在 Dashboard 补全密钥类环境变量）。
 
 **说明：** Render 免费实例会休眠，首次请求可能较慢；竞品分析请求若超过平台超时，需在 Render 或代码里评估超时时间。
+
+---
+
+## 在 Vercel 上部署前端
+
+1. 登录 [Vercel](https://vercel.com) → **Add New…** → **Project** → 导入同一 GitHub 仓库。
+2. **重要**：在 **Root Directory** 里点 **Edit**，选 **`frontend`**（单仓子目录，不要用车根目录）。
+3. **Framework Preset** 一般为 **Vite**（自动识别）；确认：
+   - **Build Command**：`npm run build`（或 `pnpm install && pnpm build`）
+   - **Output Directory**：`dist`
+4. **Environment Variables**（在 Vercel 项目 → Settings → Environment Variables）里新增：
+   - **`VITE_API_BASE_URL`** = 你的 Render 后端根地址，例如 `https://competitor-team-api.onrender.com`  
+     （不要带末尾 `/`；Vite 会在**构建时**把该值打进静态文件，改完后需 **Redeploy**。）
+   - 若后端需要鉴权且前端用了 `VITE_API_TOKEN`，可一并配置（与本地 `.env` 一致）。
+5. 点 **Deploy**。部署完成后会得到 `https://xxx.vercel.app`。
+6. **回到 Render 后端**：在环境变量 **`CORS_ORIGINS`** 里加上你的 Vercel 地址（完整 origin，无路径），例如：  
+   `https://xxx.vercel.app`  
+   若已有多个域名，用英文逗号分隔。保存后 **Manual Deploy** 或等待自动重启使 CORS 生效。
+7. 用浏览器打开 Vercel 地址，做一次完整分析流程自测。
+
+**提示：** 本地 `vite.config.ts` 里的 **proxy 只在 `npm run dev` 时有效**；线上不会走代理，必须依赖 **`VITE_API_BASE_URL` 指向 Render**。

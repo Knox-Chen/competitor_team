@@ -11,6 +11,15 @@ const ANALYZE_ENDPOINT =
     : `${RAW_ENDPOINT}${ANALYZE_PATH}`;
 
 export async function analyzeCompetitors(query: string): Promise<AnalysisResponse> {
+  // 线上构建若未配置 VITE_API_BASE_URL，会变成请求当前站点 /api/...，导致 net::ERR_FAILED / 404
+  if (import.meta.env.PROD && !RAW_ENDPOINT.trim()) {
+    return {
+      success: false,
+      error:
+        '未配置后端地址：请在 Vercel 环境变量中设置 VITE_API_BASE_URL 为 Render 后端 https 地址并重新部署。'
+    };
+  }
+
   try {
     const body: AnalysisRequest = { query };
 

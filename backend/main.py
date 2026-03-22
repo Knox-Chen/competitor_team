@@ -42,15 +42,21 @@ def _cors_origins() -> List[str]:
   if not extra:
     return base
   for part in extra.split(","):
-    o = part.strip()
+    # 浏览器 Origin 不带末尾 /，配置里若写了 https://xxx.app/ 会导致预检失败 → net::ERR_FAILED
+    o = part.strip().rstrip("/")
     if o and o not in base:
       base.append(o)
   return base
 
 
+# 匹配所有 Vercel 部署（生产 + Preview 随机子域），避免只配了主域名而预览环境 CORS 失败
+_DEFAULT_VERCEL_ORIGIN_RE = r"https://.+\.vercel\.app$"
+_CORS_VERCEL_REGEX = os.getenv("CORS_VERCEL_REGEX", _DEFAULT_VERCEL_ORIGIN_RE).strip() or None
+
 app.add_middleware(
   CORSMiddleware,
   allow_origins=_cors_origins(),
+  allow_origin_regex=_CORS_VERCEL_REGEX,
   allow_credentials=True,
   allow_methods=["*"],
   allow_headers=["*"],
@@ -70,6 +76,8 @@ def _log_env():
   logger.info(" .env 路径: %s", _env_file)
   logger.info(" COZE_REMOTE_ENDPOINT: %s", endpoint or "(未设置)")
   logger.info(" COZE_REMOTE_TOKEN: %s", "已设置" if token_set else "(未设置)")
+  logger.info(" CORS allow_origins: %s", _cors_origins())
+  logger.info(" CORS allow_origin_regex: %s", _CORS_VERCEL_REGEX or "(未启用)")
 
 
 @app.post("/api/competitor-analysis/analyze", response_model=AnalysisResponse)
